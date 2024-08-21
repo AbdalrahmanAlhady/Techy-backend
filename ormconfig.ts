@@ -4,7 +4,7 @@ export const appDataSource = new DataSource({
   host: "localhost",
   port: 3306,
   username: "root",
-  password: "root",
+  password: "123456",
   database: "techy_db",
   synchronize: true,
   logging: false,

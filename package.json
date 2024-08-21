@@ -25,6 +25,7 @@
     "@types/jsonwebtoken": "^9.0.6",
     "apollo-server-express": "^3.13.0",
     "bcryptjs": "^2.4.3",
+    "class-validator": "^0.14.1",
     "cookie-parser": "^1.4.6",
     "dotnet": "^1.1.4",
     "graphql": "^16.9.0",
