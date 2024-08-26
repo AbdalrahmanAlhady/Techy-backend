@@ -9,13 +9,15 @@ import {
   UseMiddleware,
 } from "type-graphql";
 import "reflect-metadata";
-import { User } from "../entity/User";
+import { User, UserRole } from "../entity/User";
 import { compare, hash } from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { Response } from "express";
 import "dotenv/config";
-import { isAuth } from "../middleware/isAuth";
 
+import { sendEmail } from "../utils/sendMail";
+import { redis } from "../utils/redis";
+import { isAuthunticated } from "../middleware/isAuthunticated";
 @ObjectType()
 class LoginResponse {
   @Field()
@@ -28,7 +30,7 @@ class LoginResponse {
 @Resolver()
 export class UserResolver {
   @Query(() => [User])
-  @UseMiddleware(isAuth)
+  @UseMiddleware(isAuthunticated)
   users(): Promise<User[]> {
     return User.find();
   }
@@ -38,7 +40,8 @@ export class UserResolver {
     @Arg("firstName") firstName: string,
     @Arg("lastName") lastName: string,
     @Arg("email") email: string,
-    @Arg("password") password: string
+    @Arg("password") password: string,
+    @Arg("role", () => UserRole) role: UserRole
   ) {
     const hashedPassword = await hash(password, 12);
     try {
@@ -47,6 +50,7 @@ export class UserResolver {
         lastName,
         email,
         password: hashedPassword,
+        role,
       });
     } catch (err) {
       console.log(err);
@@ -70,7 +74,7 @@ export class UserResolver {
       throw new Error("Invalid credentia");
     }
     const accessToken = sign(
-      { id: foundUser.id },
+      { id: foundUser.id, role: foundUser.role },
       process.env.ACCESS_TOKEN_SECRET!,
       {
         expiresIn: "1h",
@@ -87,5 +91,62 @@ export class UserResolver {
       httpOnly: true,
     });
     return { user: foundUser, accessToken, refreshToken };
+  }
+
+  @Mutation(() => Boolean)
+  async sendMail(
+    @Arg("email") email: string,
+    @Arg("reason") reason: "reset password" | "verify email"
+  ): Promise<boolean> {
+    let message: string = "";
+    const foundUser = await User.findOne({ where: { email } });
+    if (!foundUser) {
+      throw new Error("Credintials not found");
+    }
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    await redis.set(foundUser.id + "", otp);
+    message = `Your ${reason} code is: ${otp || "unknown"}`;
+    sendEmail(email, message, reason);
+    return true;
+  }
+  @Mutation(() => User || Error)
+  async resetPassword(
+    @Arg("email") email: string,
+    @Arg("password") password: string,
+    @Arg("cpassword") cpassword: string,
+    @Arg("code") code: string
+  ): Promise<User | Error> {
+    const foundUser = await User.findOne({ where: { email } });
+    if (!foundUser) {
+      throw new Error("Credintials not found");
+    }
+    if (password !== cpassword) {
+      throw new Error("Password not matched");
+    }
+    if ((await redis.get(foundUser.id + "")) === code) {
+      foundUser.password = password;
+      foundUser.save();
+      return foundUser;
+    } else {
+      throw new Error("Invalid code");
+    }
+  }
+  @Mutation(() => String || Error)
+  async verifyEmail(
+    @Arg("email") email: string,
+    @Arg("code") code: string
+  ): Promise<string | Error> {
+    const foundUser = await User.findOne({ where: { email } });
+    if (!foundUser) {
+      throw new Error("Credintials not found");
+    }
+    if ((await redis.get(foundUser.id + "")) === code) {
+      foundUser.verified = true;
+      await foundUser.save();
+      await redis.del(foundUser.id + "");
+      return "email verified successfully";
+    } else {
+      return new Error("Invalid code");
+    }
   }
 }

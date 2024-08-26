@@ -5,7 +5,10 @@ import { buildSchema } from "type-graphql";
 import { UserResolver } from "./resolver/UserResolver";
 import { appDataSource } from "../ormconfig";
 import cookieParser from "cookie-parser";
-
+import { BrandResolver } from "./resolver/BrandResolver";
+import { CategoryResolver } from "./resolver/CategoryResolver";
+import { ProductResolver } from "./resolver/ProductResolver";
+import { isAuthorized } from "./middleware/isAuthorized";
 
 (async () => {
   const app: any = express();
@@ -15,13 +18,18 @@ import cookieParser from "cookie-parser";
   app.use(cookieParser());
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
-      resolvers: [UserResolver],
+      resolvers: [
+        ProductResolver,
+        BrandResolver,
+        CategoryResolver,
+        UserResolver,
+      ],
+      authChecker: isAuthorized,
     }),
     context: ({ req, res }) => ({ req, res }), // Provide context
   });
   await apolloServer.start();
   apolloServer.applyMiddleware({ app });
-  console.log(process.env.PORT);
 
   app.listen(process.env.PORT, () =>
     console.log("Server started on port 3000")

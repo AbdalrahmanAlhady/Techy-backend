@@ -1,6 +1,23 @@
-import { Field, Int, ObjectType } from "type-graphql";
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity } from "typeorm";
-import {Min,Max,IsEmail, min} from "class-validator"
+import { Authorized, Field, Int, ObjectType, registerEnumType } from "type-graphql";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  BaseEntity,
+  OneToMany,
+} from "typeorm";
+import { Min, Max, IsEmail } from "class-validator";
+import { Product } from "./Product";
+export enum UserRole {
+  BUYER = "buyer",
+  ADMIN = "admin",
+  VENDOR = "vendor",
+}
+
+registerEnumType(UserRole, {
+  name: "UserRole",
+  description: "The roles of the users",
+});
 @ObjectType()
 @Entity()
 export class User extends BaseEntity {
@@ -9,8 +26,7 @@ export class User extends BaseEntity {
   id: number;
 
   @Field()
-
-  @Column("varchar", { unique: true})
+  @Column("varchar", { unique: true })
   @IsEmail()
   email: string;
 
@@ -19,7 +35,7 @@ export class User extends BaseEntity {
   @Min(2)
   @Min(255)
   firstName: string;
-  
+
   @Field()
   @Column()
   @Min(2)
@@ -28,4 +44,19 @@ export class User extends BaseEntity {
 
   @Column("text")
   password: string;
+
+  @Column("bool", { default: false })
+  verified: boolean;
+
+  @Field(() => UserRole)
+  @Column({
+    type: "enum",
+    enum: UserRole,
+    default: UserRole.BUYER,
+  })
+  role: UserRole;
+
+  @Field(() => [Product], { nullable: true })
+  @OneToMany(() => Product, (product) => product.vendor)
+  products?: Product[]; // Only vendors will have products
 }
