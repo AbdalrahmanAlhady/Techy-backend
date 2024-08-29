@@ -1,4 +1,10 @@
-import { Authorized, Field, Int, ObjectType, registerEnumType } from "type-graphql";
+import {
+  Authorized,
+  Field,
+  Int,
+  ObjectType,
+  registerEnumType,
+} from "type-graphql";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -26,18 +32,18 @@ export class User extends BaseEntity {
   id: number;
 
   @Field()
-  @Column("varchar", { unique: true })
+  @Column("varchar", { unique: true, nullable: false })
   @IsEmail()
   email: string;
 
   @Field()
-  @Column()
+  @Column("varchar", { nullable: false })
   @Min(2)
   @Min(255)
   firstName: string;
 
   @Field()
-  @Column()
+  @Column("varchar", { nullable: false })
   @Min(2)
   @Min(255)
   lastName: string;
@@ -45,8 +51,13 @@ export class User extends BaseEntity {
   @Column("text")
   password: string;
 
+  @Field()
   @Column("bool", { default: false })
   verified: boolean;
+
+  @Field(() => Int, { nullable: true })
+  @Column("int", { nullable: true, default: null })
+  otp: number | null;
 
   @Field(() => UserRole)
   @Column({

@@ -16,10 +16,10 @@ import { Response } from "express";
 import "dotenv/config";
 
 import { sendEmail } from "../utils/sendMail";
-import { redis } from "../utils/redis";
 import { isAuthunticated } from "../middleware/isAuthunticated";
 import { QueryOptionsInput } from "../types/QueryOptionsInput";
 import { createQueryOptions } from "../utils/apiUtils";
+import { Code } from "typeorm";
 @ObjectType()
 class LoginResponse {
   @Field()
@@ -131,7 +131,8 @@ export class UserResolver {
       throw new Error("Credintials not found");
     }
     const otp = Math.floor(100000 + Math.random() * 900000);
-    await redis.set(foundUser.id + "", otp);
+    foundUser.otp = otp;
+    await foundUser.save();
     message = `Your ${reason} code is: ${otp || "unknown"}`;
     sendEmail(email, message, reason);
     return true;
@@ -141,7 +142,7 @@ export class UserResolver {
     @Arg("email") email: string,
     @Arg("password") password: string,
     @Arg("cpassword") cpassword: string,
-    @Arg("code") code: string
+    @Arg("code") code: number
   ): Promise<User | Error> {
     const foundUser = await User.findOne({ where: { email } });
     if (!foundUser) {
@@ -150,8 +151,9 @@ export class UserResolver {
     if (password !== cpassword) {
       throw new Error("Password not matched");
     }
-    if ((await redis.get(foundUser.id + "")) === code) {
+    if (foundUser.otp === code) {
       foundUser.password = password;
+      foundUser.otp = null;
       foundUser.save();
       return foundUser;
     } else {
@@ -161,16 +163,16 @@ export class UserResolver {
   @Mutation(() => String || Error)
   async verifyEmail(
     @Arg("email") email: string,
-    @Arg("code") code: string
+    @Arg("code") code: number
   ): Promise<string | Error> {
     const foundUser = await User.findOne({ where: { email } });
     if (!foundUser) {
       throw new Error("Credintials not found");
     }
-    if ((await redis.get(foundUser.id + "")) === code) {
+    if (foundUser.otp === code) {
       foundUser.verified = true;
+      foundUser.otp = null;
       await foundUser.save();
-      await redis.del(foundUser.id + "");
       return "email verified successfully";
     } else {
       return new Error("Invalid code");
