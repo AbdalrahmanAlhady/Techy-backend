@@ -19,7 +19,7 @@ import { createQueryOptions } from "../utils/apiUtils";
 export class CategoryResolver {
   @Query(() => [Category])
   async categories(
-    @Arg("id", { nullable: true }) id: number,
+    @Arg("id", { nullable: true })  id: string,
     @Arg("options", () => QueryOptionsInput, { nullable: true })
     options?: QueryOptionsInput
   ): Promise<Category[]> {
@@ -56,7 +56,7 @@ export class CategoryResolver {
   @UseMiddleware(isAuthunticated)
   @Authorized(UserRole.ADMIN)
   async updateCategory(
-    @Arg("id") id: number,
+    @Arg("id")  id: string,
     @Arg("name") name: string
   ): Promise<Category | null> {
     const category = await Category.update({ id }, { name });
@@ -69,7 +69,7 @@ export class CategoryResolver {
   @Mutation(() => Boolean)
   @UseMiddleware(isAuthunticated)
   @Authorized(UserRole.ADMIN)
-  async deleteCategory(@Arg("id") id: number): Promise<boolean> {
+  async deleteCategory(@Arg("id")  id: string): Promise<boolean> {
     const result = await Category.delete({ id });
     return result.affected! > 0;
   }

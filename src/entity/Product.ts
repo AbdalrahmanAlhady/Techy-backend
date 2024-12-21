@@ -15,7 +15,7 @@ import { User } from "./User";
 export class Product extends BaseEntity {
   @Field(() => ID)
   @PrimaryGeneratedColumn()
-  id: number;
+  id: string;
 
   @Field()
   @Column()
@@ -23,6 +23,10 @@ export class Product extends BaseEntity {
 
   @Field()
   @Column()
+  cover: string;
+
+  @Field()
+  @Column("longtext")
   description: string;
 
   @Field()
@@ -36,7 +40,7 @@ export class Product extends BaseEntity {
   @Field(() => Category)
   @ManyToOne(() => Category, (category) => category.products)
   category: Category;
-  
+
   @Field(() => User)
   @ManyToOne(() => User, (user) => user.products)
   vendor: User; // Vendor who owns the product

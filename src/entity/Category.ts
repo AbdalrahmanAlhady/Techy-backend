@@ -7,13 +7,13 @@ import { Product } from './Product';
 export class Category  extends BaseEntity {
   @Field(() => ID)
   @PrimaryGeneratedColumn()
-  id: number;
+  id: string;
 
   @Field()
   @Column()
   name: string;
 
   @Field(() => [Product])
-  @OneToMany(() => Product, (product) => product.category)
+  @OneToMany(() => Product, (product) => product.category, { onDelete: "CASCADE" })
   products: Product[];
 }

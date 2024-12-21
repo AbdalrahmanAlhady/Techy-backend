@@ -16,7 +16,7 @@ import { createQueryOptions } from "../utils/apiUtils";
 export class BrandResolver {
   @Query(() => [Brand])
   async brands(
-    @Arg("id", { nullable: true }) id: number,
+    @Arg("id", { nullable: true })  id: string,
     @Arg("options", () => QueryOptionsInput, { nullable: true })
     options?: QueryOptionsInput
   ): Promise<Brand[]> {
@@ -52,7 +52,7 @@ export class BrandResolver {
   @UseMiddleware(isAuthunticated)
   @Authorized(UserRole.ADMIN)
   async updateBrand(
-    @Arg("id") id: number,
+    @Arg("id")  id: string,
     @Arg("name") name: string
   ): Promise<Brand | null> {
     const brand = await Brand.update({ id }, { name });
@@ -65,7 +65,7 @@ export class BrandResolver {
   @Mutation(() => Boolean)
   @UseMiddleware(isAuthunticated)
   @Authorized(UserRole.ADMIN)
-  async deleteBrand(@Arg("id") id: number): Promise<boolean> {
+  async deleteBrand(@Arg("id")  id: string): Promise<boolean> {
     const result = await Brand.delete({ id });
     return result.affected! > 0;
   }

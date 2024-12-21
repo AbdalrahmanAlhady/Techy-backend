@@ -5,6 +5,7 @@ import {
   Arg,
   UseMiddleware,
   Authorized,
+  Int,
 } from "type-graphql";
 import { Category } from "../entity/Category";
 import { Product } from "../entity/Product";
@@ -16,9 +17,29 @@ import { Brand } from "../entity/Brand";
 
 @Resolver(Product)
 export class ProductResolver {
+  @Query(() => Int)
+  async productsCount(
+    @Arg("options", () => QueryOptionsInput, { nullable: true })
+    options?: QueryOptionsInput
+  ): Promise<number> {
+    const parsedFilters = options?.filters ? JSON.parse(options.filters) : {};
+    const qb = Product.createQueryBuilder("Product");
+    const queryOptions = createQueryOptions(qb, {
+      page: options?.page,
+      limit: options?.limit,
+      sortField: options?.sortField,
+      sortOrder: options?.sortOrder,
+      filters: parsedFilters,
+      searchField: options?.searchField,
+      searchTerm: options?.searchTerm,
+      relations: options?.relations || ["brand", "category", "vendor"], // Default relation
+    });
+    return queryOptions.getCount();
+  }
+
   @Query(() => [Product])
   async products(
-    @Arg("id", { nullable: true }) id: number,
+    @Arg("id", { nullable: true })  id: string,
     @Arg("options", () => QueryOptionsInput, { nullable: true })
     options?: QueryOptionsInput
   ): Promise<Product[]> {
@@ -51,11 +72,12 @@ export class ProductResolver {
   @Authorized([UserRole.ADMIN, UserRole.VENDOR])
   async createProduct(
     @Arg("name") name: string,
+    @Arg("cover") cover: string,
     @Arg("description") description: string,
     @Arg("price") price: number,
-    @Arg("brandId") brandId: number,
-    @Arg("categoryId") categoryId: number,
-    @Arg("vendorId") vendorId: number
+    @Arg("brandId") brandId: string,
+    @Arg("categoryId") categoryId: string,
+    @Arg("vendorId") vendorId: string
   ): Promise<Product> {
     try {
       const brand = await Brand.findOne({ where: { id: brandId } });
@@ -68,6 +90,7 @@ export class ProductResolver {
       }
       const product = Product.create({
         name,
+        cover,
         description,
         price,
         brand,
@@ -86,11 +109,12 @@ export class ProductResolver {
   @UseMiddleware(isAuthunticated)
   @Authorized([UserRole.ADMIN, UserRole.VENDOR])
   async updateProduct(
-    @Arg("id") id: number,
+    @Arg("id")  id: string,
     @Arg("name", { nullable: true }) name?: string,
+    @Arg("cover", { nullable: true }) cover?: string,
     @Arg("price", { nullable: true }) price?: number
   ): Promise<Product | null> {
-    const product = await Product.update({ id }, { name, price });
+    const product = await Product.update({ id }, { name, cover, price });
     if (product.affected === 0) {
       throw new Error("update failed");
     }
@@ -101,7 +125,7 @@ export class ProductResolver {
   @Mutation(() => Boolean)
   @UseMiddleware(isAuthunticated)
   @Authorized([UserRole.ADMIN, UserRole.VENDOR])
-  async deleteProduct(@Arg("id") id: number): Promise<boolean> {
+  async deleteProduct(@Arg("id")  id: string): Promise<boolean> {
     const result = await Product.delete({ id });
     return result.affected! > 0;
   }

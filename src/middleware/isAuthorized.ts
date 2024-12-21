@@ -15,7 +15,7 @@ export const isAuthorized: AuthChecker<Context> = async (
   try {
     const token = authorization.split(" ")[1];
     const payload = verify(token, process.env.ACCESS_TOKEN_SECRET!) as {
-      id: number;
+       id: string;
       role: UserRole;
     };
     

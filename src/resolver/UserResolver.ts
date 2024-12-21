@@ -34,7 +34,7 @@ export class UserResolver {
   @Query(() => [User])
   @UseMiddleware(isAuthunticated)
   async users(
-    @Arg("id", { nullable: true }) id: number,
+    @Arg("id", { nullable: true })  id: string,
     @Arg("options", () => QueryOptionsInput, { nullable: true })
     options?: QueryOptionsInput
   ): Promise<User[]> {

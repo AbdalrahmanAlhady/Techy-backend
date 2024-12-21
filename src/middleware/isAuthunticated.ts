@@ -12,7 +12,7 @@ export const isAuthunticated: MiddlewareFn<Context> = async ({ context }, next) 
   try {
     const token = authorization.split(" ")[1];
     const payload = verify(token, process.env.ACCESS_TOKEN_SECRET!) as {
-      id: number;
+       id: string;
       role: UserRole;
     };
     const user = await User.findOne({ where: { id: payload.id } });

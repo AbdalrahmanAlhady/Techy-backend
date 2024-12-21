@@ -14,6 +14,7 @@ import {
 } from "typeorm";
 import { Min, Max, IsEmail } from "class-validator";
 import { Product } from "./Product";
+import { Order } from "./Order";
 export enum UserRole {
   BUYER = "buyer",
   ADMIN = "admin",
@@ -29,7 +30,7 @@ registerEnumType(UserRole, {
 export class User extends BaseEntity {
   @Field(() => Int)
   @PrimaryGeneratedColumn()
-  id: number;
+   id: string;;
 
   @Field()
   @Column("varchar", { unique: true, nullable: false })
@@ -68,6 +69,11 @@ export class User extends BaseEntity {
   role: UserRole;
 
   @Field(() => [Product], { nullable: true })
-  @OneToMany(() => Product, (product) => product.vendor)
+  @OneToMany(() => Product, (product) => product.vendor,{ onDelete: "CASCADE" })
   products?: Product[]; // Only vendors will have products
+
+  @Field(() => [Order], { nullable: true })
+  @OneToMany(() => Order, (order) => order.user,{ onDelete: "CASCADE" })
+  orders?: Order[]; // Only normal users will have products
+  
 }
