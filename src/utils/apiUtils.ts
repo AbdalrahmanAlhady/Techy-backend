@@ -1,19 +1,9 @@
 import { SelectQueryBuilder } from "typeorm";
-
-interface QueryOptions {
-  page?: number;
-  limit?: number;
-  sortField?: string;
-  sortOrder?: "ASC" | "DESC";
-  filters?: { [key: string]: any };
-  searchField?: string;
-  searchTerm?: string;
-  relations?: string[];
-}
+import { QueryOptionsInput } from "../types/QueryOptionsInput";
 
 export function createQueryOptions<T extends object>(
   qb: SelectQueryBuilder<T>,
-  options: QueryOptions
+  options: QueryOptionsInput
 ): SelectQueryBuilder<T> {
   let {
     page = 1,
@@ -36,10 +26,16 @@ export function createQueryOptions<T extends object>(
 
   // Apply filters
   for (const [key, value] of Object.entries(filters)) {
-    if (value !== undefined) {
-      qb.andWhere(`${qb.alias}.${key} = :${key}`, { [key]: value });
+      if (value !== undefined) {
+        if (key === 'price' && Array.isArray(value) && value.length === 2) {
+          qb.andWhere(`${qb.alias}.${key} BETWEEN :start AND :end`, { start: value[0], end: value[1] });
+        } else if (Array.isArray(value) && value.length > 0) {
+          qb.andWhere(`${qb.alias}.${key} IN (:...${key})`, { [key]: value });
+        } else if (!Array.isArray(value)) {
+          qb.andWhere(`${qb.alias}.${key} = :${key}`, { [key]: value });
+        }
+      }
     }
-  }
 
   // Apply search
   if (searchField && searchTerm) {
@@ -52,6 +48,5 @@ export function createQueryOptions<T extends object>(
   for (const relation of relations) {
     qb.leftJoinAndSelect(`${qb.alias}.${relation}`, relation);
   }
-
   return qb;
 }

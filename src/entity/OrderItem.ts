@@ -34,7 +34,7 @@ export class OrderItem extends BaseEntity {
   order: Order;
 
   @Field(() => Product)
-  @ManyToOne(() => Product)
+  @ManyToOne(() => Product, product => product.orderItems)
   product: Product;
 
   async updateTotalPrice(

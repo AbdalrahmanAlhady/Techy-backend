@@ -1,3 +1,4 @@
+import GraphQLJSON from "graphql-type-json";
 import { InputType, Field, Int } from "type-graphql";
 
 @InputType()
@@ -20,8 +21,8 @@ export class QueryOptionsInput {
   @Field({ nullable: true })
   searchTerm?: string;
 
-  @Field({ nullable: true })
-  filters?: string;
+  @Field(() => GraphQLJSON, { nullable: true })
+  filters?: { [key: string]: string[] };
 
   @Field(() => [String], { nullable: true })
   relations?: string[];

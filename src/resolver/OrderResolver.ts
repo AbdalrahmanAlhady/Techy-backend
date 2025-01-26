@@ -5,6 +5,7 @@ import {
   Arg,
   UseMiddleware,
   Authorized,
+  Int,
 } from "type-graphql";
 import { User, UserRole } from "../entity/User";
 import { isAuthunticated } from "../middleware/isAuthunticated";
@@ -19,36 +20,62 @@ import { appDataSource } from "../../ormconfig";
 
 @Resolver(Order)
 export class OrderResolver {
-  @Query(() => [Order])
-  async orders(
-    @Arg("id", { nullable: true })  id: string,
+  @Query(() => Int)
+  async ordersCount(
     @Arg("options", () => QueryOptionsInput, { nullable: true })
     options?: QueryOptionsInput
-  ): Promise<Order[]> {
-    if (id) {
-      return Order.find({ where: { id }, relations: ["user", "orderItems"] });
-    }
-    const parsedFilters = options?.filters ? JSON.parse(options.filters) : {};
-
+  ): Promise<number> {
     const qb = Order.createQueryBuilder("Order");
-
     const queryOptions = createQueryOptions(qb, {
       page: options?.page,
       limit: options?.limit,
       sortField: options?.sortField,
       sortOrder: options?.sortOrder,
-      filters: parsedFilters,
+      filters:  options?.filters,
       searchField: options?.searchField,
       searchTerm: options?.searchTerm,
       relations: options?.relations || ["user", "orderItems"], // Default relation
+    });
+    return queryOptions.getCount();
+  }
+  @Query(() => [Order])
+    @UseMiddleware(isAuthunticated)
+  async orders(
+    @Arg("id", { nullable: true }) id?: string,
+    @Arg("options", () => QueryOptionsInput, { nullable: true })
+    options?: QueryOptionsInput
+  ): Promise<Order[]> {
+    if (id) {
+      return Order.find({
+        where: { id },
+        relations: options?.relations || [
+          "user",
+          "orderItems",
+        ],
+      });
+    }
+    const qb = Order.createQueryBuilder("Order");
+    const queryOptions = createQueryOptions(qb, {
+      page: options?.page,
+      limit: options?.limit,
+      sortField: options?.sortField,
+      sortOrder: options?.sortOrder,
+      filters:  options?.filters,
+      searchField: options?.searchField,
+      searchTerm: options?.searchTerm,
+      relations: options?.relations || [
+        "user",
+        "orderItems",
+      ],
     });
 
     return queryOptions.getMany();
   }
 
   @Mutation(() => Order)
-  // @UseMiddleware(isAuthunticated)
+  @UseMiddleware(isAuthunticated)
   async createOrder(
+    @Arg("address") address: string,
     @Arg("totalAmount") totalAmount: number,
     @Arg("deliveryFee") deliveryFee: number,
     @Arg("userId") userId: string,
@@ -66,6 +93,7 @@ export class OrderResolver {
             totalAmount,
             user,
             deliveryFee,
+            address
           });
           await transactionalEntityManager.save(order);
 
@@ -99,10 +127,10 @@ export class OrderResolver {
     );
   }
   @Mutation(() => Order || null || undefined)
-  // @UseMiddleware(isAuthunticated)
-  // @Authorized(UserRole.ADMIN)
+  @UseMiddleware(isAuthunticated)
+  @Authorized(UserRole.ADMIN)
   async updateOrder(
-    @Arg("id")  id: string,
+    @Arg("id") id: string,
     @Arg("orderStatus", { nullable: true }) orderStatus: OrderStatus,
     @Arg("totalAmount", { nullable: true }) totalAmount: number,
     @Arg("deliveryFee", { nullable: true }) deliveryFee: number
@@ -143,8 +171,8 @@ export class OrderResolver {
 
   @Mutation(() => Boolean)
   @UseMiddleware(isAuthunticated)
-  @Authorized(UserRole.ADMIN)
-  async deleteOrder(@Arg("id")  id: string): Promise<boolean> {
+  @Authorized(UserRole.ADMIN || UserRole.BUYER)
+  async deleteOrder(@Arg("id") id: string): Promise<boolean> {
     const result = await Order.delete({ id });
     return result.affected! > 0;
   }

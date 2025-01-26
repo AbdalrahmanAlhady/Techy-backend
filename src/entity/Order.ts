@@ -34,6 +34,11 @@ export class Order extends BaseEntity {
     default: OrderStatus.PENDING,
   })
   orderStatus: OrderStatus;
+  
+  @Field()
+  @Column("longtext")
+  address: string;
+
   @Field()
   @Column({ type: "decimal", default: 5.0 })
   deliveryFee: number;
@@ -47,7 +52,9 @@ export class Order extends BaseEntity {
   user: User; // user who ordered the order
 
   @Field(() => [OrderItem])
-  @OneToMany(() => OrderItem, (orderItem) => orderItem.order,{onDelete:"CASCADE"})
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
+    onDelete: "CASCADE",
+  })
   orderItems: OrderItem[];
 
   async updateTotalAmount(

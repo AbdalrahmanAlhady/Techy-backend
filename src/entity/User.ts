@@ -40,13 +40,13 @@ export class User extends BaseEntity {
   @Field()
   @Column("varchar", { nullable: false })
   @Min(2)
-  @Min(255)
+  @Max(20)
   firstName: string;
 
   @Field()
   @Column("varchar", { nullable: false })
   @Min(2)
-  @Min(255)
+  @Max(20)
   lastName: string;
 
   @Column("text")

@@ -4,11 +4,13 @@ import {
   Column,
   ManyToOne,
   BaseEntity,
+  OneToMany,
 } from "typeorm";
 import { ObjectType, Field, ID } from "type-graphql";
 import { Category } from "./Category";
 import { Brand } from "./Brand";
 import { User } from "./User";
+import { OrderItem } from "./OrderItem";
 
 @ObjectType()
 @Entity()
@@ -30,6 +32,10 @@ export class Product extends BaseEntity {
   description: string;
 
   @Field()
+  @Column("int")
+  inventory: number;
+
+  @Field()
   @Column("decimal")
   price: number;
 
@@ -44,4 +50,8 @@ export class Product extends BaseEntity {
   @Field(() => User)
   @ManyToOne(() => User, (user) => user.products)
   vendor: User; // Vendor who owns the product
+
+  @Field(() => [OrderItem])
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.product)
+  orderItems: OrderItem[];
 }
