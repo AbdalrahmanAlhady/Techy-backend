@@ -72,4 +72,52 @@ export class UserResolver {
 
     return queryOptions.getMany();
   }
+
+  @Mutation(() => User)
+  @UseMiddleware(isAuthunticated)
+  @Authorized(UserRole.ADMIN)
+  async createUser(
+    @Arg("firstName") firstName: string,
+    @Arg("lastName") lastName: string,
+    @Arg("email") email: string,
+    @Arg("password") password: string,
+    @Arg("role", () => UserRole) role: UserRole
+  ): Promise<User> {
+    const hashedPassword = await hash(password, 12);
+    const user = await User.create({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword,
+      role,
+    }).save();
+    return user;
+  }
+  @Mutation(() => User || null)
+  @UseMiddleware(isAuthunticated)
+  @Authorized(UserRole.ADMIN)
+  async updateUser(
+    //by admin
+    @Arg("id") id: string,
+    @Arg("firstName") firstName: string,
+    @Arg("lastName") lastName: string,
+    @Arg("email") email: string,
+    @Arg("password") password: string,
+    @Arg("role", () => UserRole) role: UserRole
+  ): Promise<User | null> {
+    if (password) password = await hash(password, 12);
+    let result = await User.update(
+      { id },
+      { firstName, lastName, email, password, role }
+    );
+    return result ? User.findOne({ where: { id } }) : null;
+  }
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuthunticated)
+  @Authorized(UserRole.ADMIN)
+  async deleteUser(@Arg("id") id: string): Promise<boolean> {
+    let result = await User.delete(id);
+    return result.affected! > 0;
+  }
 }
