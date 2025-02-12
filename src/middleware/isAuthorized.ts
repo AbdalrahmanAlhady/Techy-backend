@@ -18,7 +18,6 @@ export const isAuthorized: AuthChecker<Context> = async (
        id: string;
       role: UserRole;
     };
-    
     if (payload.role) {
       return roles.includes(payload.role);
     } else {

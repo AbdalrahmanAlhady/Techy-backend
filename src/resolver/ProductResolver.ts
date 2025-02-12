@@ -129,12 +129,13 @@ export class ProductResolver {
   @Authorized([UserRole.ADMIN, UserRole.VENDOR])
   async createProduct(
     @Arg("name") name: string,
-    @Arg("cover") cover: string,
+    @Arg("cover", { nullable: true }) cover: string,
     @Arg("description") description: string,
     @Arg("price") price: number,
     @Arg("brandId") brandId: string,
     @Arg("categoryId") categoryId: string,
-    @Arg("vendorId") vendorId: string
+    @Arg("vendorId") vendorId: string,
+    @Arg("inventory") inventory: number
   ): Promise<Product> {
     try {
       const brand = await Brand.findOne({ where: { id: brandId } });
@@ -142,8 +143,8 @@ export class ProductResolver {
       const category = await Category.findOne({ where: { id: categoryId } });
       if (!category) throw new Error("Category not found");
       const vendor = await User.findOne({ where: { id: vendorId } });
-      if (!vendor || vendor.role !== UserRole.VENDOR) {
-        throw new Error("User not found or not a vendor");
+      if (!vendor) {
+        throw new Error("User not found");
       }
       const product = Product.create({
         name,
@@ -153,6 +154,7 @@ export class ProductResolver {
         brand,
         category,
         vendor,
+        inventory,
       });
       return Product.save(product);
     } catch (error: any) {
@@ -176,7 +178,7 @@ export class ProductResolver {
     if (product.affected === 0) {
       throw new Error("update failed");
     }
-    const updatedProduct = await Product.findOne({ where: { id } });
+    const updatedProduct = await Product.findOne({ where: { id } , relations: ["brand", "category", "vendor"]});
     return updatedProduct;
   }
 

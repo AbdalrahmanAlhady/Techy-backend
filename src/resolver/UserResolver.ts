@@ -12,9 +12,7 @@ import {
 } from "type-graphql";
 import "reflect-metadata";
 import { User, UserRole } from "../entity/User";
-import { compare, hash } from "bcryptjs";
-import { sign } from "jsonwebtoken";
-import { Response } from "express";
+import { hash } from "bcryptjs";
 import "dotenv/config";
 
 import { sendEmail } from "../utils/sendMail";
@@ -102,13 +100,14 @@ export class UserResolver {
     @Arg("firstName") firstName: string,
     @Arg("lastName") lastName: string,
     @Arg("email") email: string,
-    @Arg("password") password: string,
-    @Arg("role", () => UserRole) role: UserRole
+    @Arg("role", () => UserRole) role: UserRole,
+    @Arg("verified") verified: boolean,
+    @Arg("password", { nullable: true }) password?: string,
   ): Promise<User | null> {
     if (password) password = await hash(password, 12);
     let result = await User.update(
       { id },
-      { firstName, lastName, email, password, role }
+      { firstName, lastName, email, password, role, verified }
     );
     return result ? User.findOne({ where: { id } }) : null;
   }

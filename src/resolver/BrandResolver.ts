@@ -78,7 +78,7 @@ export class BrandResolver {
     if (brand.affected === 0) {
       throw new Error("update failed");
     }
-    return await Brand.findOne({ where: { id } });
+    return await Brand.findOne({ where: { id }, relations: ["products"] });
   }
 
   @Mutation(() => Boolean)

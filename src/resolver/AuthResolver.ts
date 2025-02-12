@@ -168,27 +168,35 @@ export class AuthResolver {
       return new Error("Invalid code");
     }
   }
-@Mutation(() => String || Error)
-async refreshAccessToken(
-  @Arg("refreshToken") refreshToken: string
-): Promise<String | Error> {
-  if (!refreshToken) {
-    throw new Error("Missing refresh token");
-  }
-  return new Promise((resolve, reject) => {
-    verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!, (err, decoded) => {
-      if (err || !decoded) {
-        reject(new Error("Invalid refresh token"));
-      } else {
-        const userId = (decoded as { id: string }).id;
-        const newAccessToken = sign(
-          { id: userId },
-          process.env.ACCESS_TOKEN_SECRET!,
-          { expiresIn: "3h" }
-        );
-        resolve(newAccessToken);
-      }
+  @Mutation(() => String || Error)
+  async refreshAccessToken(
+    @Arg("refreshToken") refreshToken: string
+  ): Promise<String | Error> {
+    if (!refreshToken) {
+      return Promise.reject(new Error("Missing refresh token"));
+    }
+    return new Promise((resolve, reject) => {
+      verify(
+        refreshToken,
+        process.env.REFRESH_TOKEN_SECRET!,
+        async (err, decoded) => {
+          if (err || !decoded) {
+            reject(new Error("Invalid refresh token"));
+          } else {
+            const userId = (decoded as { id: string }).id;
+            const foundUser = await User.findOne({ where: { id: userId } });
+            if (!foundUser) {
+              reject(new Error("User not found"));
+            }
+            const newAccessToken = sign(
+              { id: userId, role: foundUser!.role },
+              process.env.ACCESS_TOKEN_SECRET!,
+              { expiresIn: "3h" }
+            );
+            resolve(newAccessToken);
+          }
+        }
+      );
     });
-  });
-}
+  }
 }

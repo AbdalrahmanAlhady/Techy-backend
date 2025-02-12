@@ -82,7 +82,7 @@ export class CategoryResolver {
     if (category.affected === 0) {
       throw new Error("update failed");
     }
-    return await Category.findOne({ where: { id } });
+    return await Category.findOne({ where: { id } , relations: ["products"]});
   }
 
   @Mutation(() => Boolean)

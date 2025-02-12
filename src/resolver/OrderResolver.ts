@@ -31,7 +31,7 @@ export class OrderResolver {
       limit: options?.limit,
       sortField: options?.sortField,
       sortOrder: options?.sortOrder,
-      filters:  options?.filters,
+      filters: options?.filters,
       searchField: options?.searchField,
       searchTerm: options?.searchTerm,
       relations: options?.relations || ["user", "orderItems"], // Default relation
@@ -39,7 +39,7 @@ export class OrderResolver {
     return queryOptions.getCount();
   }
   @Query(() => [Order])
-    @UseMiddleware(isAuthunticated)
+  @UseMiddleware(isAuthunticated)
   async orders(
     @Arg("id", { nullable: true }) id?: string,
     @Arg("options", () => QueryOptionsInput, { nullable: true })
@@ -51,24 +51,26 @@ export class OrderResolver {
         relations: options?.relations || [
           "user",
           "orderItems",
+          "orderItems.product",
         ],
       });
     }
     const qb = Order.createQueryBuilder("Order");
+
     const queryOptions = createQueryOptions(qb, {
       page: options?.page,
       limit: options?.limit,
       sortField: options?.sortField,
       sortOrder: options?.sortOrder,
-      filters:  options?.filters,
+      filters: options?.filters,
       searchField: options?.searchField,
       searchTerm: options?.searchTerm,
-      relations: options?.relations || [
-        "user",
-        "orderItems",
-      ],
+      relations: options?.relations || ["user", "orderItems"],
     });
-
+    queryOptions
+      .leftJoinAndSelect("Order.orderItems", "OrderItem")
+      .leftJoinAndSelect("OrderItem.product", "Product")
+      .leftJoinAndSelect("Product.vendor", "Vendor");
     return queryOptions.getMany();
   }
 
@@ -93,7 +95,7 @@ export class OrderResolver {
             totalAmount,
             user,
             deliveryFee,
-            address
+            address,
           });
           await transactionalEntityManager.save(order);
 
@@ -131,40 +133,60 @@ export class OrderResolver {
   @Authorized(UserRole.ADMIN)
   async updateOrder(
     @Arg("id") id: string,
-    @Arg("orderStatus", { nullable: true }) orderStatus: OrderStatus,
-    @Arg("totalAmount", { nullable: true }) totalAmount: number,
-    @Arg("deliveryFee", { nullable: true }) deliveryFee: number
-  ): Promise<Order | null | undefined> {
+    @Arg("orderStatus", { nullable: true }) orderStatus?: OrderStatus,
+    @Arg("totalAmount", { nullable: true }) totalAmount?: number,
+    @Arg("deliveryFee", { nullable: true }) deliveryFee?: number,
+    @Arg("address", { nullable: true }) address?: string
+  ): Promise<Order | null> {
     return await appDataSource.manager.transaction(
       async (transactionalEntityManager) => {
-        if (deliveryFee) {
-          let order = await transactionalEntityManager.findOne(Order, {
-            where: { id },
-            relations: ["orderItems"],
-          });
-          if (order) {
-            order.deliveryFee = deliveryFee;
-            await transactionalEntityManager.save(order);
-            return await order.updateTotalAmount(
-              order.id,
-              transactionalEntityManager
-            );
-          }
-        } else if (orderStatus || totalAmount) {
+        // Fetch order once at the beginning
+        let order = await transactionalEntityManager.findOne(Order, {
+          where: { id },
+          relations: ["user", "orderItems"],
+        });
+
+        if (!order) {
+          throw new Error("Order not found");
+        }
+
+        let updateData: Partial<Order> = {};
+
+        // Update deliveryFee & recalculate totalAmount if needed
+        if (
+          typeof deliveryFee !== "undefined" &&
+          order.deliveryFee !== deliveryFee
+        ) {
+          order.deliveryFee = deliveryFee;
+          await transactionalEntityManager.save(order);
+          await order.updateTotalAmount(order.id, transactionalEntityManager);
+        }
+
+        // Prepare update fields
+        if (typeof totalAmount !== "undefined")
+          updateData.totalAmount = totalAmount;
+        if (typeof orderStatus !== "undefined")
+          updateData.orderStatus = orderStatus;
+        if (typeof address !== "undefined") updateData.address = address;
+
+        // Update only if necessary
+        if (Object.keys(updateData).length > 0) {
           const orderResult = await transactionalEntityManager.update(
             Order,
             { id },
-            { totalAmount, orderStatus }
+            updateData
           );
 
           if (orderResult.affected === 0) {
-            throw new Error("update failed");
+            throw new Error("Update failed");
           }
-          return await transactionalEntityManager.findOne(Order, {
-            where: { id },
-            relations: ["orderItems"],
-          });
         }
+
+        // Return the updated order
+        return await transactionalEntityManager.findOne(Order, {
+          where: { id },
+          relations: ["orderItems", "user"],
+        });
       }
     );
   }

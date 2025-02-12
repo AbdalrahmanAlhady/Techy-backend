@@ -11,6 +11,7 @@ import { ProductResolver } from "./resolver/ProductResolver";
 import { isAuthorized } from "./middleware/isAuthorized";
 import { OrderResolver } from "./resolver/OrderResolver";
 import { OrderItemResolver } from "./resolver/OrderItemResolver";
+import { AuthResolver } from "./resolver/AuthResolver";
 
 (async () => {
   const app: any = express();
@@ -26,7 +27,8 @@ import { OrderItemResolver } from "./resolver/OrderItemResolver";
         CategoryResolver,
         UserResolver,
         OrderResolver,
-        OrderItemResolver
+        OrderItemResolver,
+        AuthResolver,
       ],
       authChecker: isAuthorized,
     }),

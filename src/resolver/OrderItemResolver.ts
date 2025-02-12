@@ -22,12 +22,14 @@ import { ProductResolver } from "./ProductResolver";
 export class OrderItemResolver {
   @Query(() => Int)
   @UseMiddleware(isAuthunticated)
-  async OrderItemsCount(
+  async orderItemsCount(
     @Arg("options", () => QueryOptionsInput, { nullable: true })
     options?: QueryOptionsInput,
+    @Arg("vendorId") vendorId?: string,
     @Arg("orderId", { nullable: true }) orderId?: string
   ): Promise<number> {
-    const qb = OrderItem.createQueryBuilder("OrderItem");
+    let qb = OrderItem.createQueryBuilder("OrderItem");
+
     const queryOptions = createQueryOptions(qb, {
       page: options?.page,
       limit: options?.limit,
@@ -36,8 +38,17 @@ export class OrderItemResolver {
       filters: options?.filters,
       searchField: options?.searchField,
       searchTerm: options?.searchTerm,
-      relations: options?.relations || ["order", "product"], // Default relation
+      relations: vendorId ? ["order"] : ["order", "product"],
     });
+    if (vendorId) {
+      queryOptions
+        .leftJoinAndSelect("OrderItem.product", "Product")
+        .leftJoinAndSelect("Product.vendor", "Vendor")
+        .andWhere("Vendor.id = :vendorId", { vendorId });
+    }
+    if (orderId) {
+      queryOptions.andWhere("OrderItem.orderId = :orderId", { orderId });
+    }
     return queryOptions.getCount();
   }
   @Query(() => [OrderItem])
@@ -57,12 +68,6 @@ export class OrderItemResolver {
     }
 
     let qb = OrderItem.createQueryBuilder("OrderItem");
-    if (vendorId) {
-      qb = OrderItem.createQueryBuilder("OrderItem")
-        .leftJoinAndSelect("OrderItem.product", "Product")
-        .leftJoinAndSelect("Product.vendor", "Vendor");
-      qb.andWhere("Vendor.id = :vendorId", { vendorId });
-    }
 
     const queryOptions = createQueryOptions(qb, {
       page: options?.page,
@@ -72,11 +77,19 @@ export class OrderItemResolver {
       filters: options?.filters,
       searchField: options?.searchField,
       searchTerm: options?.searchTerm,
-      relations: options?.relations || ["order", "product"], // Default relation
+      relations: vendorId ? ["order"] : ["order", "product"],
     });
+
+    if (vendorId) {
+      queryOptions
+        .leftJoinAndSelect("OrderItem.product", "Product")
+        .leftJoinAndSelect("Product.vendor", "Vendor")
+        .andWhere("Vendor.id = :vendorId", { vendorId });
+    }
     if (orderId) {
       queryOptions.andWhere("OrderItem.orderId = :orderId", { orderId });
     }
+
     return queryOptions.getMany();
   }
 

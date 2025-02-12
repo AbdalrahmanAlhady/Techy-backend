@@ -12,9 +12,10 @@ import { User } from "./User";
 import { OrderItem } from "./OrderItem";
 
 export enum OrderStatus {
-  PENDING = "pending",
-  SHIPPED = "shipped",
-  CANCELED = "canceled",
+  PENDING = "PENDING",
+  SHIPPED = "SHIPPED",
+  DELIVERED = "DELIVERED",
+  CANCELED = "CANCELED",
 }
 registerEnumType(OrderStatus, {
   name: "OrderStatus",
@@ -64,7 +65,7 @@ export class Order extends BaseEntity {
     try {
       let order = await transactionalEntityManager.findOne(Order, {
         where: { id: orderId },
-        relations: ["orderItems"],
+        relations: ["user", "orderItems"],
       });
       order!.totalAmount = 0;
       order!.totalAmount = order!.orderItems!.reduce(
