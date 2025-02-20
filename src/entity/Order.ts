@@ -48,6 +48,10 @@ export class Order extends BaseEntity {
   @Column("decimal")
   totalAmount: number;
 
+  @Field()
+  @Column()
+  stripePaymentId: string;
+
   @Field(() => User)
   @ManyToOne(() => User, (user) => user.orders)
   user: User; // user who ordered the order

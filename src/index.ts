@@ -12,6 +12,7 @@ import { isAuthorized } from "./middleware/isAuthorized";
 import { OrderResolver } from "./resolver/OrderResolver";
 import { OrderItemResolver } from "./resolver/OrderItemResolver";
 import { AuthResolver } from "./resolver/AuthResolver";
+import { PaymentResolver } from "./resolver/PaymentResolver";
 
 (async () => {
   const app: any = express();
@@ -29,6 +30,7 @@ import { AuthResolver } from "./resolver/AuthResolver";
         OrderResolver,
         OrderItemResolver,
         AuthResolver,
+        PaymentResolver
       ],
       authChecker: isAuthorized,
     }),
@@ -38,6 +40,6 @@ import { AuthResolver } from "./resolver/AuthResolver";
   apolloServer.applyMiddleware({ app });
 
   app.listen(process.env.PORT, () =>
-    console.log("Server started on port 3000")
+    console.log("Server started on port " + process.env.PORT)
   );
 })();

@@ -17,6 +17,7 @@ import { OrderItemInput } from "../types/OrderItemInput";
 import { OrderItemResolver } from "./OrderItemResolver";
 import { Console } from "console";
 import { appDataSource } from "../../ormconfig";
+import { PaymentResolver } from "./PaymentResolver";
 
 @Resolver(Order)
 export class OrderResolver {
@@ -81,7 +82,8 @@ export class OrderResolver {
     @Arg("totalAmount") totalAmount: number,
     @Arg("deliveryFee") deliveryFee: number,
     @Arg("userId") userId: string,
-    @Arg("orderItems", () => [OrderItemInput]) orderItems: OrderItemInput[]
+    @Arg("orderItems", () => [OrderItemInput]) orderItems: OrderItemInput[],
+    @Arg("stripePaymentId", { nullable: true }) stripePaymentId: string
   ): Promise<Order> {
     return await appDataSource.manager.transaction(
       async (transactionalEntityManager) => {
@@ -96,6 +98,7 @@ export class OrderResolver {
             user,
             deliveryFee,
             address,
+            stripePaymentId,
           });
           await transactionalEntityManager.save(order);
 
