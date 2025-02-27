@@ -102,13 +102,21 @@ export class UserResolver {
     @Arg("email") email: string,
     @Arg("role", () => UserRole) role: UserRole,
     @Arg("verified") verified: boolean,
-    @Arg("password", { nullable: true }) password?: string,
+    @Arg("password", { nullable: true }) password?: string
   ): Promise<User | null> {
-    if (password) password = await hash(password, 12);
-    let result = await User.update(
-      { id },
-      { firstName, lastName, email, password, role, verified }
-    );
+    let result ;
+    if (password) {
+      password = await hash(password, 12);
+      result = await User.update(
+        { id },
+        { firstName, lastName, email, password, role, verified }
+      );
+    } else {
+      result = await User.update(
+        { id },
+        { firstName, lastName, email, role, verified }
+      );
+    }
     return result ? User.findOne({ where: { id } }) : null;
   }
 

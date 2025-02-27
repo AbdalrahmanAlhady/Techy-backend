@@ -112,7 +112,7 @@ export class AuthResolver {
     @Arg("password") password: string,
     @Arg("cPassword") cPassword: string,
     @Arg("currentPassword", { nullable: true }) currentPassword: string,
-    @Arg("code", { nullable: true }) code: string
+    @Arg("code", { nullable: true }) code: string // Make code nullable
   ): Promise<Boolean> {
     try {
       const foundUser = await User.findOne({ where: { email } });
@@ -131,16 +131,20 @@ export class AuthResolver {
           throw new Error("Invalid credentials");
         }
         foundUser.password = await hash(password, 12);
+        await foundUser.save();
         return true;
-      }
-      if (code && foundUser.otp === parseInt(code)) {
-        const hashedPassword = await hash(password, 12);
-        foundUser.password = hashedPassword;
-        foundUser.otp = null;
-        foundUser.save();
-        return true;
+      } else if (code) {
+        if (foundUser.otp === parseInt(code)) {
+          const hashedPassword = await hash(password, 12);
+          foundUser.password = hashedPassword;
+          foundUser.otp = null;
+          await foundUser.save();
+          return true;
+        } else {
+          throw new Error("Invalid code");
+        }
       } else {
-        throw new Error("Invalid code");
+        throw new Error("Code is required");
       }
     } catch (error) {
       if (error instanceof Error) {
